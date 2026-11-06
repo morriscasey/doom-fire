@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>DOOM Fire Lab 4</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: system-ui, Segoe UI, sans-serif
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: #0b0c10;
+            color: #ececf1
+        }
+
+        .shell {
+            max-width: 1050px;
+            margin: auto;
+            padding: 24px
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(24px, 4vw, 36px);
+            letter-spacing: .04em
+        }
+
+        p {
+            color: #a9abb7;
+            margin: 7px 0 20px
+        }
+
+        .stage {
+            background: #000;
+            border: 1px solid #353641;
+            border-radius: 12px;
+            overflow: hidden;
+            aspect-ratio: 320/168
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            image-rendering: pixelated
+        }
+
+        .panel {
+            background: #171820;
+            border: 1px solid #353641;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px
+        }
+
+        .control {
+            display: grid;
+            gap: 8px
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        .readout {
+            float: right;
+            color: #c6c8d5;
+            font-variant-numeric: tabular-nums
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: #ff7a36
+        }
+
+        input[type=color] {
+            width: 52px;
+            height: 38px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            cursor: pointer
+        }
+
+        input[type=text] {
+            background: #0c0d13;
+            color: white;
+            border: 1px solid #454651;
+            border-radius: 7px;
+            padding: 10px;
+            width: 110px;
+            font: inherit
+        }
+
+        .colorline {
+            display: flex;
+            align-items: center;
+            gap: 9px
+        }
+
+        select,
+        button {
+            font: inherit;
+            background: #292b36;
+            border: 1px solid #50515e;
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: white;
+            cursor: pointer
+        }
+
+        button:hover {
+            background: #3b3e4c
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px
+        }
+
+        .sub {
+            font-size: 12px;
+            color: #a9abb7;
+            margin-top: 12px
+        }
+
+        button.primary {
+            background: #7d361b;
+            border-color: #b54b27
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid #ffc27c;
+            outline-offset: 2px
+        }
+    </style>
+</head>
+
+<body>
+    <main class="shell">
+        <h1>DOOM FIRE</h1>
+        <p>PlayStation DOOM-style cellular fire · pure Canvas 2D · offline</p>
+        <div class="stage"><canvas id="fire" width="320" height="168" aria-label="Animated fire"></canvas></div>
+        <section class="panel grid">
+            <div class="control"><label for="intensity">Intensity <output class="readout"
+                        id="intensityValue">31%</output></label><input id="intensity" type="range" min="0" max="100"
+                    value="31"><small>Controls how quickly heat decays as it rises.</small></div>
+            <div class="control"><label for="wind">Wind <output class="readout" id="windValue">-7</output></label><input
+                    id="wind" type="range" min="-10" max="10" value="-7"><small>Negative values push the flames
+                    left.</small></div>
+            <div class="control"><label for="resolution">Simulation resolution</label><select id="resolution">
+                    <option value="160x84">Chunky · 160 × 84</option>
+                    <option value="320x168" selected>Classic · 320 × 168</option>
+                    <option value="640x336">Fine · 640 × 336</option>
+                </select><small>Nearest-neighbor pixel scaling.</small></div>
+            <div class="control"><label for="fps">Animation rate <output class="readout" id="fpsValue">30
+                        FPS</output></label><input id="fps" type="range" min="5" max="60" value="30"></div>
+        </section>
+        <section class="panel">
+            <h2 style="margin-top:0;font-size:19px">Flame palette</h2>
+            <div class="grid">
+                <div class="control"><label for="baseHex">Base · cool flame</label>
+                    <div class="colorline"><input type="color" id="baseColor" value="#ff3300"><input type="text"
+                            id="baseHex" value="#ff3300" maxlength="7" spellcheck="false"></div>
+                </div>
+                <div class="control"><label for="midHex">Middle · warm flame</label>
+                    <div class="colorline"><input type="color" id="midColor" value="#ff9900"><input type="text"
+                            id="midHex" value="#ff9900" maxlength="7" spellcheck="false"></div>
+                </div>
+                <div class="control"><label for="hotHex">Hot · flame core</label>
+                    <div class="colorline"><input type="color" id="hotColor" value="#ffffcc"><input type="text"
+                            id="hotHex" value="#ffffcc" maxlength="7" spellcheck="false"></div>
+                </div>
+            </div>
+            <div class="sub">The three colors are interpolated across 37 heat levels. Black remains black.</div>
+        </section>
+        <section class="panel">
+            <div class="actions"><button class="primary" data-preset="requested">Requested settings</button><button
+                    data-preset="classic">Classic PSX palette</button><button data-preset="blue">Blue
+                    fire</button><button data-preset="green">Toxic green</button><button data-preset="purple">Arcane
+                    purple</button><button id="pause">Pause</button><button id="reset">Restart fire</button><button
+                    id="extinguish">Extinguish</button><button id="ignite">Reignite</button></div>
+            <div class="sub">Classic PSX palette restores the original 37-step color table and neutral wind. Other
+                presets use a custom three-stop gradient. Keyboard accessible.</div>
+        </section>
+    </main>
+    <script>
+        'use strict';
+        // PSX DOOM fire propagation, as documented by Fabien Sanglard:
+        // each pixel reads the pixel immediately below, subtracts a random 0/1,
+        // and writes the result into the row above with a random horizontal shift.
+        const ORIGINAL_HEX = ['#070707', '#1f0707', '#2f0f07', '#470f07', '#571707', '#671f07', '#771f07', '#8f2707', '#9f2f07', '#af3f07', '#bf4707', '#c74707', '#df4f07', '#df5707', '#df5707', '#d75f07', '#d7670f', '#cf6f0f', '#cf770f', '#cf7f0f', '#cf8717', '#c78717', '#c78f17', '#c7971f', '#bf9f1f', '#bf9f1f', '#bfa727', '#bfa727', '#bfaf2f', '#b7af2f', '#b7b72f', '#b7b737', '#cfcf6f', '#dfdf9f', '#efefc7', '#ffffff', '#ffffff'];
+        const $ = id => document.getElementById(id), canvas = $('fire'), ctx = canvas.getContext('2d', { alpha: false });
+        let width = 320, height = 168, heat = new Uint8Array(width * height), frame = ctx.createImageData(width, height), running = true, burning = true, last = 0, accumulator = 0, original = false;
+        const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+        const valid = h => /^#[0-9a-fA-F]{6}$/.test(h);
+        const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+        let palette = [];
+        function paletteUpdate() { if (original) { palette = ORIGINAL_HEX.map(rgb); return; } const a = rgb($('baseHex').value), b = rgb($('midHex').value), c = rgb($('hotHex').value); palette = Array.from({ length: 37 }, (_, i) => { if (i === 0) return [0, 0, 0]; let t = i / 36; if (t < .28) return mix([0, 0, 0], a, t / .28); if (t < .73) return mix(a, b, (t - .28) / .45); return mix(b, c, (t - .73) / .27); }); }
+        function initialize() { heat = new Uint8Array(width * height); if (burning) heat.fill(36, (height - 1) * width); frame = ctx.createImageData(width, height); render(); }
+        function resize() { [width, height] = $('resolution').value.split('x').map(Number); canvas.width = width; canvas.height = height; initialize(); }
+        function propagate() {
+            const intensity = Number($('intensity').value) / 100, wind = Number($('wind').value) / 10;
+            // Intensity 50 is the baseline PSX decay; lower values shorten flames.
+            const extraDecay = (1 - intensity) * 1.7;
+            for (let y = 1; y < height; y++) {
+                const offset = y * width; for (let x = 0; x < width; x++) {
+                    const src = offset + x, below = heat[src];
+                    const random = Math.floor(Math.random() * 4); // 0..3, original shift pattern
+                    const drift = Math.round(wind * 2 + (Math.random() - .5) * Math.abs(wind) * 2);
+                    const destX = Math.max(0, Math.min(width - 1, x + 1 - random + drift));
+                    const dest = (y - 1) * width + destX;
+                    const decay = (random & 1) + (Math.random() < extraDecay * .45 ? 1 : 0) + (Math.random() < Math.max(0, extraDecay - 1) * .45 ? 1 : 0);
+                    heat[dest] = Math.max(0, below - decay);
+                }
+            }
+            // Fill potential untouched top-row pixels naturally via subsequent steps; keep the bottom lit.
+            if (burning) heat.fill(36, (height - 1) * width); else heat.fill(0, (height - 1) * width);
+        }
+        function render() { const data = frame.data; for (let i = 0; i < heat.length; i++) { const [r, g, b] = palette[heat[i]]; const p = i * 4; data[p] = r; data[p + 1] = g; data[p + 2] = b; data[p + 3] = 255; } ctx.putImageData(frame, 0, 0); }
+        function animate(now) { requestAnimationFrame(animate); if (!running) { last = now; return; } if (!last) last = now; accumulator += Math.min(100, now - last); last = now; const period = 1000 / Number($('fps').value); let steps = 0; while (accumulator >= period && steps < 4) { propagate(); accumulator -= period; steps++; } if (steps) render(); }
+        function colorSet(name, value) { $(name + 'Hex').value = value; $(name + 'Color').value = value; }
+        for (const name of ['base', 'mid', 'hot']) { $(name + 'Color').addEventListener('input', e => { colorSet(name, e.target.value); original = false; paletteUpdate(); render(); }); $(name + 'Hex').addEventListener('input', e => { if (valid(e.target.value)) { colorSet(name, e.target.value.toLowerCase()); original = false; paletteUpdate(); render(); } }); $(name + 'Hex').addEventListener('blur', () => { if (!valid($(name + 'Hex').value)) $(name + 'Hex').value = $(name + 'Color').value; }); }
+        for (const name of ['intensity', 'wind', 'fps']) { $(name).addEventListener('input', () => { $(name + 'Value').textContent = $(name).value + (name === 'intensity' ? '%' : name === 'fps' ? ' FPS' : ''); }); }
+        $('resolution').addEventListener('change', resize);
+        const presets = { requested: { intensity: 31, wind: -7, colors: ['#ff3300', '#ff9900', '#ffffcc'] }, classic: { intensity: 50, wind: 0, colors: ['#ff3300', '#ff9900', '#ffffff'], original: true }, blue: { intensity: 65, wind: 0, colors: ['#0033cc', '#0088ff', '#e1faff'] }, green: { intensity: 60, wind: 0, colors: ['#006b26', '#37ed57', '#e6ffae'] }, purple: { intensity: 65, wind: -2, colors: ['#4d007d', '#a638ff', '#ffe5ff'] } };
+        function applyPreset(name) { const p = presets[name]; $('intensity').value = p.intensity; $('wind').value = p.wind; for (const id of ['intensity', 'wind']) $(id).dispatchEvent(new Event('input'));['base', 'mid', 'hot'].forEach((key, i) => colorSet(key, p.colors[i])); original = !!p.original; paletteUpdate(); render(); }
+        document.querySelectorAll('[data-preset]').forEach(btn => btn.addEventListener('click', () => applyPreset(btn.dataset.preset)));
+        $('pause').addEventListener('click', () => { running = !running; $('pause').textContent = running ? 'Pause' : 'Resume'; });
+        $('reset').addEventListener('click', initialize);
+        $('extinguish').addEventListener('click', () => { burning = false; heat.fill(0, (height - 1) * width); });
+        $('ignite').addEventListener('click', () => { burning = true; heat.fill(36, (height - 1) * width); });
+        applyPreset('requested'); initialize(); requestAnimationFrame(animate);
+    </script>
+</body>
+
+</html>
